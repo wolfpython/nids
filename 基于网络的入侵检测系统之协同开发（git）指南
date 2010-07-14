@@ -17,9 +17,23 @@ wolfpythonlondon@gmail.com
 git是用来控制软件（更准确的说是任何文件）的版本的管理工具，和一般的分布式管理工具不同，
 git只关心文件数据整体的变化，而不是文件内容的具体变化。 也就是，git 是把每次的数据都
 生成快照，而不是记录每个文件，每行发生了什么变化。
-git明显优于其他的版本控制工具方面在于： 近乎所有操作可以本地化，而且有远程仓库。
+git明显优于其他的版本控制工具方面在于： 近乎所有操作可以本地化，而且有远程仓库
+（先到 http://github.com  注册一个ID）。
 
 git把文件分为三种状态：已提交（commited）, 已修改(modified)和已暂存(staged).
+
+
+产生ssh密钥。
+$ssh-keygen -t rsa -C "lyh19901223@gmail.com"
+默认就行，等到遇到这个的时候：Enter passphrase
+可以选择自己喜欢的一个断语输进去，这个以后会有用的，相当于密钥的密码。
+然后在家目录下面的.ssh目录里会有一个文件 id_rsa.pub
+wolf@debian:~$ cd .ssh
+wolf@debian:~/.ssh$ ls -f
+.  id_rsa  ..  known_hosts  id_rsa.pub
+用文本编辑器打开id_rsa.pub文件，把你里面的东西原封不动的cp到github（上面注册的那个
+github ），具体参考这个help 文档。
+
 
 
 初次使用git， 需要进行配置一下工作环境。(把对应我的用户名和邮箱换成你自己的)
@@ -36,7 +50,7 @@ $git add README #暂存README
 $git commit README
 
 如果是拥有远程仓库，比如github，就可以连接远程仓库(这个可以自己到github上注册一个ID)
-$git remote add origin git@github.com:wolfpython/nids.git  #zje这里用origin代替仓库的地址
+$git remote add origin git@github.com:wolfpython/nids.git  #zje o这里用origin代替仓库的地址
 $git push origin master #向远程仓库推送数据
 当然也可以从远程仓库抓取数据回来
 $git fetch orign 
