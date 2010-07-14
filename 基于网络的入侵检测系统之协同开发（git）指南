@@ -1,0 +1,57 @@
+基于网络的入侵检测系统之协同开发（git）指南
+
+/******************************************
+wolf python london 
+刘宇辉
+lyh19901223@gmail.com
+wolfpythonlondon@gmail.com
+*******************************************/
+
+安装git(包管理安装)：
+##debian , ubuntu, B2D 
+#aptitude install git
+
+##centos , fedora 
+#yum install git
+
+git是用来控制软件（更准确的说是任何文件）的版本的管理工具，和一般的分布式管理工具不同，
+git只关心文件数据整体的变化，而不是文件内容的具体变化。 也就是，git 是把每次的数据都
+生成快照，而不是记录每个文件，每行发生了什么变化。
+git明显优于其他的版本控制工具方面在于： 近乎所有操作可以本地化，而且有远程仓库。
+
+git把文件分为三种状态：已提交（commited）, 已修改(modified)和已暂存(staged).
+
+
+初次使用git， 需要进行配置一下工作环境。(把对应我的用户名和邮箱换成你自己的)
+$git config --global  user.name "wolfpython"
+$git config --global user.email "lyh19901223@gmail.com"
+注意，命令里有一个参数 --global，这个表示是对全局进行配置，在某个项目中可以配置单独的信息。
+
+管理一个项目(假如从新开始建立一个项目，目录为nids):
+$mkdir nids
+$cd nids
+$git init    #初始化，当前目录下面出新一个.git目录。
+$touch README  #比如建立一个README文件 
+$git add README #暂存README
+$git commit README
+
+如果是拥有远程仓库，比如github，就可以连接远程仓库(这个可以自己到github上注册一个ID)
+$git remote add origin git@github.com:wolfpython/nids.git  #zje这里用origin代替仓库的地址
+$git push origin master #向远程仓库推送数据
+当然也可以从远程仓库抓取数据回来
+$git fetch orign 
+
+
+目前，我已经建了一个仓库， git@github.com:wolfpython/nids.git
+大家不必重新开始建立一个全新的仓库，要做的就是，fork一下（简单的说，就是复制一下，这个可以在注册完ID后，点击fork按钮）
+然后git clone(克隆)远程仓库到本地。
+$git clone git://github.con/wolfpython/nids.git
+
+其他的相关知识等到编码的时候再添加，比如如何恢复上一次的代码，如何删除代码（远程仓库）。
+
+
+
+
+
+
+
