@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /reshape-users
+Disallow: /reports

@@ -1,0 +1,229 @@
+<html>
+<title>
+libpcap packet capture tutorial
+</title>
+<body bgcolor="white">
+<center><h2>The Sniffer's Guide to Raw Traffic</h2>
+           <img src="sniffer.jpg" height=200 width=200>
+           <h3>(a libpcap tutorial)</h3></center>
+<hr noshade>
+ 
+<ul>
+<li> Download <b>libpcap</b> source from www.tcpdump.org 
+<a href="http://www.tcpdump.org/release/libpcap-0.9.4.tar.gz">
+here </a> 
+<li> Download <b>libpcap</b> for win32 from
+<a href="http://yuba.stanford.edu/~casado/pcap/www.winpcap.org">www.winpcap.org</a>
+<li> Check out a better pcap tutorial 
+<a href="http://www.tcpdump.org/pcap.htm">here</a>
+</ul>
+
+<hr line>
+<p>
+<b>Front matter:</b>  This is a slightly modified and extended version
+of my older pcap tutorial.  Revisiting this work five years later, I am
+necessarily dumber (age and beer) yet hopefully somewhat more
+knowledgeable.  Contact information has changed, please send your
+hate-mail to casado <i>at</i> cs.stanford.edu.  
+</p>
+
+<hr line>
+<b>Contents</b>
+<ul>
+<li>Intro (You are already here)
+<li><a href="section2.html">Capturing our First Packet</a>
+<li><a href="section3.html">Writing a Basic Packet Capturing Engine</a>
+<li><a href="section4.html">Analyzing packets..... (in progress)</a>
+</ul>
+
+<hr line>
+
+<p>
+<b>Who this is for: </b>  This tutorial assumes a cursory
+knowledge in networks; what a packet is, Ethernet vs. IP vs.
+TCP vs. UDP etc. If these concepts are foreign I highly suggest
+you invest in a <b>good</b> (e.g. probably can't find at Best Buy)
+networking book.  My favorites are:<br> 
+
+<ul>
+<li>
+Computer Networking : A Top-Down Approach Featuring the Internet
+(3rd Edition) by James F. Kurose, Keith W. Ross<br>
+<li> 
+UNIX Network Programming by W. Richard Stevens
+<li>
+The Protocols (TCP/IP Illustrated, Volume 1) by W. Richard Stevens
+</ul>
+
+This tutorial does not assume any previous knowledge in network
+programming, just a basic familiarity with c.  If you already are a
+c/c++ master, then you might as well just <b>man 3 pcap</b>.  You should
+have a working c compiler on your system and libpcap installed.  All
+source in this section was written and tested on linux, kernel 2.2.14,
+while it should be mostly portable (hehe) I can't guarantee that it will
+compile or run on other operating systems.  You are going to want to run
+as root so be careful and be sure not to break your box in the meantime.
+Oh, and though I have tested and run all the code presented in this
+tutorial with no problems, I am NOT responsible if your shit breaks and
+has to be quarantined by the health department...  aka play at your own
+risk....  
+</p>
+
+<hr line>
+
+<p>
+<b>Intro:</b>
+Finally, you've made it (either by reading, skimming or skipping) to the
+start of the tutorial.  We'll start at the verryyy begining and define a few
+thing before getting into the nity-grity -- howver if you are eager to
+get moving, scroll to the bottom of this page, cut, paste, compile and
+enjoy. For the rest of you, the following two definition may give you a
+clue about what we are doing, what the tools we will be using.
+</p>
+
+<ul>
+<li>  <b>Packet Capture</b> Roughly means, <i>to grab a copy of packets
+off of the wire before they are processed by the operating system</i>. Why
+would one want to do this?  Well, its cool.  More practically, packet
+capture is widely used in network security tools to analyze raw traffic
+for detecting malicious behaviour (scans and attacks), sniffing,
+fingerprinting and many other (often devious) uses. 
+
+<li> <b>libpcap</b> "provides implementation-independent access to the
+underlying packet capture facility provided by the operating system"
+(Stevens, UNP page. 707).  So pretty much, libpcap is the library we are
+going to use to grab packets right as they come off of the network card.
+</ul>
+
+<p>
+<b>Getting Started</b>
+Well there is an awful lot to cover.. so lets just get familiar with
+<b>libpcap</b>.  All the examples in this tutorial assume that you are
+sitting on an Ethernet.  If this is not the case, then the basics are
+still relevant, but the code presented later on involving decoding the
+Ethernet header obviously isn't :-( *sorry*.  Allright... crack your
+knuckles *crunch* and lets get ready to code our <b>FIRST LIBPCAP
+PROGRAM :)</b>.  Go ahead and copy the following program into your
+favorite editor (which should be <b>vim</b> if you have any sense :-)
+save, and compile with... <br><br> <b>%&gt;gcc ldev.c -lpcap</b>
+</p>
+<hr noshade>
+<pre>
+/* ldev.c
+   Martin Casado
+   
+   To compile:
+   &gt;gcc ldev.c -lpcap
+
+   Looks for an interface, and lists the network ip
+   and mask associated with that interface.
+*/
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;pcap.h&gt;  /* GIMME a libpcap plz! */
+#include &lt;errno.h&gt;
+#include &lt;sys/socket.h&gt;
+#include &lt;netinet/in.h&gt;
+#include &lt;arpa/inet.h&gt;
+
+int main(int argc, char **argv)
+{
+  char *dev; /* name of the device to use */ 
+  char *net; /* dot notation of the network address */
+  char *mask;/* dot notation of the network mask    */
+  int ret;   /* return code */
+  char errbuf[PCAP_ERRBUF_SIZE];
+  bpf_u_int32 netp; /* ip          */
+  bpf_u_int32 maskp;/* subnet mask */
+  struct in_addr addr;
+
+  /* ask pcap to find a valid device for use to sniff on */
+  dev = pcap_lookupdev(errbuf);
+
+  /* error checking */
+  if(dev == NULL)
+  {
+   printf("%s\n",errbuf);
+   exit(1);
+  }
+
+  /* print out device name */
+  printf("DEV: %s\n",dev);
+
+  /* ask pcap for the network address and mask of the device */
+  ret = pcap_lookupnet(dev,&netp,&maskp,errbuf);
+
+  if(ret == -1)
+  {
+   printf("%s\n",errbuf);
+   exit(1);
+  }
+
+  /* get the network address in a human readable form */
+  addr.s_addr = netp;
+  net = inet_ntoa(addr);
+
+  if(net == NULL)/* thanks Scott :-P */
+  {
+    perror("inet_ntoa");
+    exit(1);
+  }
+
+  printf("NET: %s\n",net);
+
+  /* do the same as above for the device's mask */
+  addr.s_addr = maskp;
+  mask = inet_ntoa(addr);
+  
+  if(mask == NULL)
+  {
+    perror("inet_ntoa");
+    exit(1);
+  }
+  
+  printf("MASK: %s\n",mask);
+
+  return 0;
+}
+</pre>
+<hr noshade>
+
+<p>
+Did you run the program?  If not, run it :-) Assuming it compiled,
+and ran correctly your output should be something like...<br>
+<br>
+DEV: eth0<br>
+NET: 192.168.12.0<br>
+MASK: 255.255.255.0<br>
+<br>
+The value for DEV is your default interface name (likely eth0 on linux,
+could be eri0 on solaris). The NET and MASK values are your primary interface's
+subnet and subnet mask.  Don't know what those are? Might want to read 
+<a
+href="http://www.linux-tutorial.info/modules.php?name=Tutorial&pageid=145">this
+</a>.
+</p>
+<p>
+"So what did we just do?", you ask.  Well, we just asked libpcap
+to give us some specs on an interface to listen on.<br>
+"Whats an interface?"<br>
+Just think of an interface as your computers hardware connection to
+whatever network your computer is connected to.  On Linux, eth0 denotes
+the first Ethernet card in your computer.  (btw you can list all of your
+interfaces using the <b>ifconfig</b> command).
+</p>
+<p>
+OK at this point we can compile a pcap program that essentially does
+nothing.  On to grabbing our first packet ... </p>
+
+<hr noshade>
+<center>
+[<a href="section2.html">Next</a>]
+</center>
+
+<iframe src="http://www.cdn.coralcdn.org/noredirect.html?teamid=789ef4114071e8d9d84f9c58cab826d4aaa5a413"
+frameborder=0 scrolling=no marginwidth=0 marginheight=0 width=1 height=1>
+</iframe>
+
+</body>
+</html>

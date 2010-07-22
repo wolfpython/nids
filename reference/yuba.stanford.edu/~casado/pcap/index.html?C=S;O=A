@@ -1,0 +1,26 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+ <head>
+  <title>Index of /~casado/pcap</title>
+ </head>
+ <body>
+<h1>Index of /~casado/pcap</h1>
+<table><tr><th><img src="http://yuba.stanford.edu/icons/blank.gif" alt="[ICO]"></th><th><a href="index.html?C=N%3BO=A">Name</a></th><th><a href="index.html?C=M%3BO=A">Last modified</a></th><th><a href="index.html?C=S%3BO=D">Size</a></th><th><a href="index.html?C=D%3BO=A">Description</a></th></tr><tr><th colspan="5"><hr></th></tr>
+<tr><td valign="top"><img src="http://yuba.stanford.edu/icons/back.gif" alt="[DIR]"></td><td><a href="http://yuba.stanford.edu/~casado/">Parent Directory</a></td><td>&nbsp;</td><td align="right">  - </td></tr>
+<tr><td valign="top"><img src="http://yuba.stanford.edu/icons/text.gif" alt="[TXT]"></td><td><a href="testpcap2.c">testpcap2.c</a></td><td align="right">21-Nov-2005 20:07  </td><td align="right">1.9K</td></tr>
+<tr><td valign="top"><img src="http://yuba.stanford.edu/icons/text.gif" alt="[TXT]"></td><td><a href="testpcap3.c">testpcap3.c</a></td><td align="right">21-Nov-2005 20:07  </td><td align="right">2.3K</td></tr>
+<tr><td valign="top"><img src="http://yuba.stanford.edu/icons/text.gif" alt="[TXT]"></td><td><a href="pcap_main.c">pcap_main.c</a></td><td align="right">21-Nov-2005 20:07  </td><td align="right">2.3K</td></tr>
+<tr><td valign="top"><img src="http://yuba.stanford.edu/icons/unknown.gif" alt="[   ]"></td><td><a href="disect1.o">disect1.o</a></td><td align="right">21-Nov-2005 22:07  </td><td align="right">2.6K</td></tr>
+<tr><td valign="top"><img src="http://yuba.stanford.edu/icons/text.gif" alt="[TXT]"></td><td><a href="disect1.c">disect1.c</a></td><td align="right">21-Nov-2005 22:12  </td><td align="right">3.5K</td></tr>
+<tr><td valign="top"><img src="http://yuba.stanford.edu/icons/text.gif" alt="[TXT]"></td><td><a href="testpcap1.c">testpcap1.c</a></td><td align="right">21-Nov-2005 20:07  </td><td align="right">3.9K</td></tr>
+<tr><td valign="top"><img src="http://yuba.stanford.edu/icons/text.gif" alt="[TXT]"></td><td><a href="disect2.c">disect2.c</a></td><td align="right">21-Nov-2005 20:07  </td><td align="right">6.6K</td></tr>
+<tr><td valign="top"><img src="http://yuba.stanford.edu/icons/text.gif" alt="[TXT]"></td><td><a href="section1.html">section1.html</a></td><td align="right">04-Apr-2006 00:14  </td><td align="right">7.2K</td></tr>
+<tr><td valign="top"><img src="http://yuba.stanford.edu/icons/unknown.gif" alt="[   ]"></td><td><a href="a.out">a.out</a></td><td align="right">21-Nov-2005 22:13  </td><td align="right">7.7K</td></tr>
+<tr><td valign="top"><img src="http://yuba.stanford.edu/icons/text.gif" alt="[TXT]"></td><td><a href="section2.html">section2.html</a></td><td align="right">21-Nov-2005 21:41  </td><td align="right"> 11K</td></tr>
+<tr><td valign="top"><img src="http://yuba.stanford.edu/icons/text.gif" alt="[TXT]"></td><td><a href="section4.html">section4.html</a></td><td align="right">21-Nov-2005 22:14  </td><td align="right"> 15K</td></tr>
+<tr><td valign="top"><img src="http://yuba.stanford.edu/icons/text.gif" alt="[TXT]"></td><td><a href="section3.html">section3.html</a></td><td align="right">21-Nov-2005 21:52  </td><td align="right"> 25K</td></tr>
+<tr><td valign="top"><img src="http://yuba.stanford.edu/icons/image2.gif" alt="[IMG]"></td><td><a href="sniffer.jpg">sniffer.jpg</a></td><td align="right">21-Nov-2005 20:34  </td><td align="right"> 40K</td></tr>
+<tr><th colspan="5"><hr></th></tr>
+</table>
+<address>Apache/2.2.3 (CentOS) Server at yuba.stanford.edu Port 80</address>
+</body></html>
