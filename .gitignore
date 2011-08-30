@@ -1,0 +1,5 @@
+#ignore the tags
+tags
+#ignore the .swp
+*.swp
+
