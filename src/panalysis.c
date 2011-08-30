@@ -548,12 +548,14 @@ void proc_pcap(u_char *user, const struct pcap_pkthdr *h,const u_char *p)
 			c = *p++;
 			sprintf(content_string, "%c",char_conv(c));
 			gdk_threads_enter();
-			insert_text2(content_string);
+			insert_text2_green(content_string);
 			gdk_threads_leave();
 
 		}
 		sprintf(content, "\n");
 		gdk_threads_enter();
+		insert_text2(content);
+		gdk_threads_leave();
 		i += j;
 
 	}
@@ -562,6 +564,11 @@ void proc_pcap(u_char *user, const struct pcap_pkthdr *h,const u_char *p)
 	insert_text2(content);
 		gdk_threads_leave();	
 }
+
+/* 
+ *Tcp analysis
+ */
+
 
 
 
