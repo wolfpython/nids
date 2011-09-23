@@ -1,4 +1,6 @@
-#include "mylibpcap.h" /****
+#include "mylibpcap.h" 
+#include <netdb.h>
+/****
  * to analyze the packet captured 
  ****/
 
@@ -568,14 +570,407 @@ void proc_pcap(u_char *user, const struct pcap_pkthdr *h,const u_char *p)
 /* 
  *Tcp analysis
  */
+#define TH_FIN 0x01   // FIN
+#define TH_SYN 0x02   // SYN
+#define TH_RST 0x04   // RST
+#define TH_PUSH 0x08  // PUSH
+#define TH_ACK 0x10   // ACK
+#define TH_URG 0x20   //URG
+
+#define TCPOPT_EOL 0
+#define TCPOPT_NOP 1
+#define TCPOPT_MAXSEG 2
+
+typedef struct _TCPHdr {
+	u_int16_t th_sport; //src port
+	u_int16_t th_dport; //des port
+	u_int32_t th_seq;   //seq
+	u_int32_t th_ack;   //ack
+	
+#ifdef WORDS_BIGENDIAN
+	u_int8_t th_off:4,
+		 th_x2:4;      //offset and unused 
+#else
+	u_int8_t th_x2:4,
+		 th_off:4;      
+#endif
+	u_int8_t th_flags;     //flags
+	u_int16_t th_win;      //windows size
+	u_int16_t th_sum;      //check sum
+	u_int16_t urp;        //urgent point
+} TCPHdr;
+
+#define EXTRACT_16BITS(p) ((u_int16_t)ntohs(*(u_int16_t*)(p)))
+#define EXTRACT_32BITS(p) ((u_int32_t)ntohs(*(u_int32_t*)(p)))
+#ifndef TCPOPT_WSCALE
+#define TCPOPT_WSCALE 3
+#endif 
+#ifndef TCOPOPT_ECHO
+#define TCOPOPT_ECHO  6
+#endif
+#ifndef TCPOPT_ECHOREPLY
+#define TCPOPT_ECHOREPLY 7
+#endif 
+#ifndef TCPOPT_TIMESTAMP
+#define TCPOPT_TIMESTAMP
+#endif
+
+struct my_tcp_header_string {
+	char sport[1024];
+	char dport[1024];
+	char seq[1024];
+	char ack[1024];
+	char doff[1024];
+	char flags[1024];
+	char win[1024];
+	char cksum[1024];
+	char urp[1024];
+	char options[1024];
+	char informatin[1024];
+};
+
+
+struct my_tcp_header_string tcp_header_string_object;
+
+void analysis_tcp(u_char *bp, int length)
+{
+	TCPHdr *tp;
+	u_char flags;
+	int hlen, total_hlen;
+	u_short sport, dport,win, urp;
+	u_int seq,ack;
+	tp = (TCPHdr *)bp;
+	printf("--------------TCP Header----------------\n");
+	if(length < sizeof(TCPHdr)) {
+		printf("Truncated TCP header: %d bytes\n", length);
+		return;
+	}
+	
+	sport = ntohs(tp->th_sport);
+	dport = ntohs(tp->th_dport);
+	hlen = tp->th_off * 4;
+	seq = ntohs(tp->th_seq);
+	ack = ntohs(tp->th_ack);
+	win = ntohs(tp->th_win);
+	urp = ntohs(tp->urp);
+	flags = tp->th_flags;
+	printf("Source port:              %d",sport);
+	if(sport < 1024) {
+		printf(" (%s)\n",tcpport_string(sport));
+	}
+	else printf("\n");
+
+	printf("Destination port:            %d",dport);
+	if(dport < 1024) {
+		printf("(%s)\n",tcpport_string(dport));
+
+	}
+	else printf("\n");
+	printf("Squence number:            %u\n",seq);
+	pritnf("Ack number:             %u\n",ack);
+	pritnf("Header length:              %d\n",hlen);
+	printf("Reserved bits:               %d\n",tp->th_x2);
+	printf("Flags:              ");
+	if(flags & TH_SYN) printf("SYN");
+	if(flags & TH_FIN) printf("FIN");
+	if(flags & TH_RST) printf("RST");
+	if(flags & TH_PUSH) printf("PUSH");
+	if(flags & TH_ACK) printf("ACK");
+	if(flags & TH_URG) printf("URG");
+	printf("\n");
+	printf("Windows size:           %d\n",win);
+	printf("Checksum:              %d\n",ntohs(tp->th_sum));
+	printf("Urgent pointer:              %d\n",urp);
+	printf("Options:                  ");
+	if(hlen > length) {
+		printf("none \nBad header length\n");
+		return;
+	}
+	length -= hlen;
+	total_hlen = hlen;
+
+	strcpy(tcp_header_string_object.options, "");
+	if((hlen -= sizeof(TCPHdr)) > 0) {
+		u_char *cp;
+		char string_local[1024];
+		int i, opt, len, datalen;
+		strcpy(string_local,"");
+		cp = (u_char *)tp +sizeof(TCPHdr);
+		while (hlen > 0) {
+			opt = *cp++;
+			if (opt == TCPOPT_EOL || opt == TCPOPT_NOP) 
+				len = 1;
+			else {
+				len = *cp++;
+				if(len < 2 || len > hlen) {
+					printf("Bad option\n");
+					strcat(tcp_header_string_object.options,"Bad option");
+					break;
+				}
+				hlen--;
+				length--;
+			}
+			hlen--;
+			length--;
+			datalen = 0;
+			switch (opt) {
+				case TCPOPT_MAXSEG:
+					datalen = 2;
+					printf("Maximum segment size = ");
+					printf("%u\n",EXTRACT_16BITS(cp));
+					sprintf(string_local,"Max seg size = %u,",EXTRACT_16BITS(cp));
+					strcat(tcp_header_string_object.options,string_local);
+					break;
+				case TCPOPT_EOL:
+					printf("End of options list\n");
+					break;
+				case TCPOPT_NOP:
+					printf("No op\n");
+					strcat(tcp_header_string_object.options,"No op,");
+					break;
+				case TCPOPT_WSCALE:
+					datalen = 1;
+					printf("Window scale = ");
+					printf("%u\n",*cp);
+					sprintf(string_local, "Window scale = %u,", *cp);
+					strcat(tcp_header_string_object.options,string_local);
+					break;
+				case TCOPOPT_ECHO:
+					datalen = 4;
+					printf("Echo = ");
+					printf("%u\n",EXTRACT_32BITS(cp));
+					sprintf(string_local,"Echo = %u,",EXTRACT_32BITS(cp));
+					strcat(tcp_header_string_object.options,string_local);
+					break;
+				case TCPOPT_ECHOREPLY:
+					datalen = 4;
+					printf("Echo reply = ");
+					printf("%u\n",EXTRACT_32BITS(cp));
+					sprintf(string_local,"Echo reply = %u,",EXTRACT_32BITS(cp));
+					strcat(tcp_header_string_object.options,string_local);
+					break;
+				case TCPOPT_TIMESTAMP:
+					datalen = 8;
+					printf("Timestamp = ");
+					printf("%u",EXTRACT_32BITS(cp));
+					printf("%u\n",EXTRACT_32BITS(cp+4));
+					sprintf(string_local,"Timestamp=%u %u,",
+							EXTRACT_32BITS(cp), EXTRACT_32BITS(cp=4));
+					strcat(tcp_header_string_object.options,string_local);
+					break;
+				default:
+					datelen = len -2;
+					printf("Option (I don't know) %d:",opt);
+					for(i = 0; i < datalen; ++i)
+						printf("%02x\n",cp[i]);
+					break;
+			}
+			cp += datalen;
+			hlen -= datalen;
+
+		}
+
+	}
+	else {
+		printf("none\n");
+		strcat(tcp_header_string_object.options,"none");
+	}
+	return;
+}
+
+
+void print_tcp_header( struct TCPHdr *tcp, int len, int wtp)
+{
+	char indnt[64]=" ";
+	if (wtp & PP_SHOW_TCPHEADER) {
+		printf("%s TCP HEADER:\n",indnt);
+		printf("%s sport=%d dport=%d seq=0x%1x ack=0x%1x doff=0x%.2x\n",
+				indnt,
+				htons(tcp->th_sport),
+				htons(tcp->th_dport),
+				(unsigned long int)htonl(tcp->th_seq),
+				(unsigned long int)htonl(tcp->th_ack),tcp->th_off);
+		sprintf(tcp_header_string_object.sport, "%d",htons(tcp->th_sport));
+		sprintf(tcp_header_string_object.dport, "%d",htons(tcp->th_dport));
+		sprintf(tcp_header_string_object.seq, "%u", (unsigned long int)htonl(tcp->th_seq));
+		sprintf(tcp_header_string_object.ack, "%u", (unsigned long int)htonl(tcp->th_ack));
+		sprintf(tcp_header_string_object.doff,"%d", tcp->th_off);
+		printf("%sflags=(0x%x)", indnt, tcp->th_flags);
+		sprintf(tcp_header_string_object.flags, "0x%x",tcp->th_flags);
+		if( tcp->th_flags & TH_FIN) printf(",FIN");
+		if(tcp->th_flags & TH_SYN) printf(",SYN");
+		if(tcp->th_flags & TH_RST) printf(",RST");
+		if(tcp->th_flags & TH_PUSH) printf(",PUSH");
+		if(tcp->th_flags & TH_ACK) printf(",ACK");
+		if(tcp->th_flags & TH_URG) printf(",URG");
+
+		printf(" win=%u cksm=0x%x urp=%.4x",
+				htons(tcp->th_win), htons(tcp->th_sum), htons(tcp->th_urp));
+		sprintf(tcp_header_string_object.win, "%u",htons(tcp->th_win));
+		sprintf(tcp_header_string_object.cksum, "0x%.4x",htons(tcp->th_sum));
+		sprintf(tcp_header_string_object.urp, "%d",htons(tcp->th_urp));
+		gdk_threads_enter();
+		add_list_to_clist3();
+		gdk_threads_leave();
+		if(use_database_yesno == 1)
+			insert_tcp_into_database();
+		printf("\n");
+
+	}
+
+	if(true) {
+		u_char *p;
+		int i;
+		strcpy(tcp_content_object,"");
+		p = (char *)tcp;
+		p += (tcp->th_off) * sizeof(int);
+		len -= sizeof(struct tcphdr) + sizeof(int);
+		if(len > 0) {
+			for (i = 0; i < len; ++i) {
+				printf("%s", my_charconv(p[i]));
+				strcat(tcp_content_object, my_charconv(p[i]));
+			}
+			printf("\n");
+		}
+		
+	}
+}
+
+
+/* 
+ * UDP  analysis
+ * */
+
+#define L2TP_PORT 1701
+#define DHCP_CLIENT_PORT 68
+#define DHCP_SERVER_PORT 67 
+#define SIP_PORT  5060
+#define RIP_PORT 520
+#define ISAKMP_PORT 500
+
+typedef struct _UDPHdr {
+	u_int16_t uh_src;
+	u_int16_t uh_dst;
+	u_int16_t uh_len;
+	u_int16_t uh_chk;
+}UDPHdr;
+
+struct my_udp_header_string
+{
+	char sport[1024];
+	char dport[1024];
+	char len[1024];
+	char cksum[1024];
+};
+
+struct my_udp_header_string udp_header_string_object;
+
+
+void analysis_udp(u_char *bp, int length)
+{
+	UDPHdr *up;
+	u_char *ep = bp + length;
+	u_short sport, dport, len;
+	struct servent *se;
+	char *udpport_string(u_short);
+	if(ep > packet_end) ep = packet_end;
+	if(length < sizeof(UDPHdr)) {
+		printf("Thuncated header, length = %d bytes\n",length);
+		return;
+	}
+	
+	up = (UDPHdr *) bp;
+	sport = ntohs(up->uh_src);
+	dport = ntohs(up->uh_dst);
+	len = ntohs(up->uh_len);
+	printf("-------------UDP Header------------\n");
+	if (sport < 1024) {
+		printf("(%s)\n",udpport_string(sport));
+	}
+	else {
+		printf("\n");
+	}
+	printf("Length:  %d\n",len);
+	printf("Checksum:  %d\n",ntohs(up->uh_chk));
+	se = getservbyname("domain","udp");
+	if (se == NULL) {
+		syserr("cannot get services entries");
+	}
+	if (sport == ntohs(se->s_port) || dport == ntohs(se->s_port)) {
+		analysis_dns((u_char *)bp + sizeof(UDPHdr),len);
+	}
+	if (sport == DHCP_CLIENT_PORT || dport == DHCP_SERVER_PORT) {
+		analysis_dhcp((u_char *)bp + sizeof(UDPHdr), len);
+	}
+	/* 
+	 *There are some other protocols , but here we don't dicuss it
+	 *such as L2TP, RIP,SIP
+	 * */
+
+	//analyze the data
+	analysis_payload((u_char *)bp +sizeof(UDPHdr), len);
+	return;
+
+
+}
+
+void print_udp_header(struct udphdr *udp, int len, int wtp)
+{
+	if (wtp & PP_SHOW_UDPHEADER) {
+		printf("\tUDP HEADER:\n");
+		printf("\t\tsport=%d dport=%d len=%d cksum=0x%.2x\n",
+				htons(udp->uh_sport),
+				htons(udp->uh_dport),
+				htons(udp->uh_len),
+				htons(udp->uh_sum));
+
+		sprintf(udp_header_string_object.sport, "%d",htons(udp->uh_sport));
+
+		sprintf(udp_header_string_object.dport, "%d",htons(udp->uh_dport));
+		
+		sprintf(udp_header_string_object.len, "%d",htons(udp->uh_len));
+
+		sprintf(udp_header_string_object.cksum, "%d",htons(udp->uh_sum));
+		gdk_thread_enter();
+		add_list_to_clist4();
+		gdk_threads_leave();
+		if(use_database_yesno == 1)
+			insert_udp_into_database();
+	}
+
+	if(true) {
+		u_char *p;
+		int i;
+		strcpy(udp_content_object, "");
+		p = (char *)udp;
+		p += sizeof(strcpy udphdr);
+		len -= sizeof(struct udphdr);
+		for (i = 0; i < len; ++i) {
+			printf("%s",my_charconv(p[i]));
+			strcat(udp_content_object, my_charconv(p[i]));
+		}
+		printf("\n");
+	}
+
+}
+
+
+/* ICMP analysis
+ *
+ * */
+typedef struct _ICMPhdr {
+	u_int8_t type;
+	u_int8_t code;
+	u_int16_t csum;
+} ICMPhdr;
 
 
 
 
 
-
-
-
+/* DNS, DHCP protocols 
+ * will be add lately
+ * */
 
 
 
